@@ -5,10 +5,10 @@ import xgboost as xgb
 import pickle
 import os
 
-# Sitenin sekme başlığı ve düzeni
+
 st.set_page_config(page_title="Financial Early Warning System", layout="wide")
 
-# 1. MOTORU YÜKLEME
+
 @st.cache_resource
 def load_model():
     with open("xgboost_model.pkl", "rb") as file:
@@ -18,14 +18,14 @@ def load_model():
 try:
     model = load_model()
 except Exception as e:
-    st.error(f"Model yüklenirken bir hata oluştu: {e}")
+    st.error(f"An error occurred while loading the predictive model. Please ensure 'xgboost_model.pkl' is present in the repository: {e}")
 
-# Sitenin Üst Başlık Alanı
+
 st.title("🔮 Corporate Bankruptcy Prediction System")
 st.subheader("Financial Early Warning Model using XGBoost Architecture")
 st.markdown("---")
 
-# HOCANIN İSTEDİĞİ 4 SEKME DÜZENİ
+
 tab1, tab2, tab3, tab4 = st.tabs([
     "🔮 Real-Time Prediction", 
     "📊 Baseline Test Performance", 
@@ -33,9 +33,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "🧪 300 Demo Data Bulk Validation"
 ])
 
-# ==========================================
-# SEKME 1: CANLI TAHMİN (TÜM SINIRLAR KALDIRILDI)
-# ==========================================
+
 with tab1:
     st.header("Enter Financial Ratios Dynamically")
     st.write("Modify the financial metrics below to simulate a company's financial health.")
@@ -90,9 +88,7 @@ with tab1:
             st.success(f"✅ **FINANCIAL HEALTH OK:** This company is classified as **STABLE / SECURE** with a bankruptcy probability of only **{probability:.2f}%**.")
             st.progress(int(probability))
 
-# ==========================================
-# SEKME 2: MODEL PERFORMANSI VE METRİKLER
-# ==========================================
+
 with tab2:
     st.header("Academic Performance & Empirical Validation Metrics (Holdout Test Set)")
     st.write("Comprehensive evaluation of model training versus validation pipeline data.")
@@ -107,10 +103,10 @@ with tab2:
     
     st.subheader("📋 Advanced Classification Report Metrics")
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric(label="Precision (Tahmin İsabeti)", value="34.00%")
-    m2.metric(label="Recall / Sensitivity (İflas Yakalama)", value="67.00%")
+    m1.metric(label="Precision ", value="34.00%")
+    m2.metric(label="Recall / Sensitivity ", value="67.00%")
     m3.metric(label="True Negative Rate / Specificity", value="95.24%")
-    m4.metric(label="F1-Score (Dengeli Başarı)", value="45.00%")
+    m4.metric(label="F1-Score ", value="45.00%")
     
     st.markdown("---")
     st.subheader("🧮 Confusion Matrix Distribution (Test Set Count - 1,304 Companies)")
@@ -119,10 +115,10 @@ with tab2:
     with matrix_col1:
         test_matrix_data = {
             "Classification Category": [
-                "✔️ True Negatives (TN) - Doğru Bilinen Sağlam Şirket Sayısı", 
-                "✔️ True Positives (TP) - Doğru Yakalanan İflas Eden Şirket Sayısı",
-                "❌ False Positives (FP) - Tip I Hata (Sağlama İflas Dediği)", 
-                "❌ False Negatives (FN) - Tip II Hata (İflas Edeni Kaçırdığı)"
+                "✔️ True Negatives (TN) - Correctly Identified Healthy Firms", 
+                "✔️ True Positives (TP) - Correctly Detected Bankrupt Firms",
+                "❌ False Positives (FP) - Type I Error (Healthy Firm Misclassified as Bankrupt)", 
+                "❌ False Negatives (FN) - Type II Error (Bankrupt Firm Misclassified as Healthy)"
             ],
             "Actual Sample Count": [1201, 29, 60, 14]
         }
@@ -186,14 +182,11 @@ with tab3:
                 st.markdown(f"**Reality (Ground Truth):** **{actual_status}**")
                 
             if (pred == selected_row['Bankrupt?']):
-                st.balloons()
                 st.success("🎉 PERFECT MATCH!")
     else:
         st.warning("Demo data file not found.")
 
-# ==========================================
-# SEKME 4: 300'LÜ TOPLU VALIDASYON SAYFASI
-# ==========================================
+
 with tab4:
     st.header("🧪 Stress-Testing & Bulk Validation Analysis")
     st.write("Click the button below to process all 300 isolated demo companies simultaneously.")
