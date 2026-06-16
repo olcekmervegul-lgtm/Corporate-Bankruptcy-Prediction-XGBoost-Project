@@ -7,14 +7,12 @@ from sklearn.metrics import accuracy_score, classification_report
 import xgboost as xgb
 import pickle
 
-print("--- 1. ADIM: VERİ SEÇİMİ VE OTOMATİK BOŞLUK TEMİZLEME ---")
-# data_split.py ile oluşturduğumuz eğitim verisini okuyoruz
+print("1.STEP")
 df = pd.read_excel("train_test_data.xlsx")
 
-# Sütun isimlerinin başındaki ve sonundaki gizli boşlukları siliyoruz
+
 df.columns = df.columns.str.strip()
 
-# Seninle birlikte belirlediğimiz 15 rasyo + hedef değişken
 selected_features = [
     'Bankrupt?',
     'Current Ratio',
@@ -33,12 +31,12 @@ selected_features = [
     'Current Liability to Assets'
 ]
 
-# Veriyi sadece bu 15 sütun kalacak şekilde süzüyoruz
+
 df_filtered = df[selected_features]
-print(f"Başarılı! Veri seti süzüldü. Mevcut Boyut: {df_filtered.shape[0]} Şirket, {df_filtered.shape[1]} Özellik.")
+print(f"Success! Dataset filtered. Current Shape: {df_filtered.shape[0]} Firms, {df_filtered.shape[1]} Features.")
 
 
-print("\n--- 2. ADIM: HEDEF DEĞİŞKEN (BANKRUPT?) DAĞILIMI ---")
+print("2.STEP")
 counts = df_filtered['Bankrupt?'].value_counts()
 percentages = df_filtered['Bankrupt?'].value_counts(normalize=True) * 100
 
@@ -47,24 +45,24 @@ iflas_sayısı = counts.get(1, 0)
 sağlam_yüzde = percentages.get(0, 0.0)
 iflas_yüzde = percentages.get(1, 0.0)
 
-print(f"Sağlam Şirket Sayısı (0): {sağlam_sayısı} (%{sağlam_yüzde:.2f})")
-print(f"İflas Eden Şirket Sayısı (1): {iflas_sayısı} (%{iflas_yüzde:.2f})")
+print(f"Healthy Firms (0): {healthy_count} ({healthy_pct:.2f}%)")
+print(f"Bankrupt Firms (1): {bankrupt_count} ({bankrupt_pct:.2f}%)")
 
-# Süzülmüş temiz veriyi yeni bir dosyaya kaydediyoruz
+
 df_filtered.to_excel("final_filtered_data.xlsx", index=False)
-print("Filtrelenmiş temiz veri 'final_filtered_data.xlsx' olarak kaydedildi!")
+print("Filtered clean dataset successfully exported as 'final_filtered_data.xlsx")
 
 
-print("\n--- 3. ADIM: GÖRSELLEŞTİRME VE EDA GRAFİKLERİ ---")
+print("3.STEP")
 plt.rcParams['figure.dpi'] = 150
 sns.set_theme(style="whitegrid")
 
-# GRAFİK 1: Hedef Değişken Dağılımı (Bar Plot)
+
 plt.figure(figsize=(6, 4))
 ax = sns.countplot(x='Bankrupt?', data=df_filtered, palette='Set2')
-plt.title('Hedef Değişken Dağılımı (Sınıf Dengesizliği)', fontsize=12, fontweight='bold')
-plt.xlabel('Şirket Durumu (0: Sağlam, 1: İflas)', fontsize=10)
-plt.ylabel('Şirket Sayısı', fontsize=10)
+plt.title('Target Variable Distribution (Class Imbalance Analysis)', fontsize=12, fontweight='bold')
+plt.xlabel('Corporate Status (0: Healthy, 1: Bankrupt)', fontsize=10)
+plt.ylabel('Firm Count', fontsize=10)
 
 for p in ax.patches:
     ax.annotate(f'{int(p.get_height())}', (p.get_x() + p.get_width() / 2., p.get_height()),
@@ -73,9 +71,9 @@ for p in ax.patches:
 plt.tight_layout()
 plt.savefig('eda_target_distribution.png')
 plt.close()
-print("1. Grafik (eda_target_distribution.png) kaydedildi!")
+print("Graph 1 (eda_target_distribution.png) generated and saved.")
 
-# GRAFİK 2: Seçtiğimiz 15 Rasyonun Korelasyon Isı Haritası (Correlation Heatmap)
+
 plt.figure(figsize=(12, 10))
 corr_matrix = df_filtered.drop(columns=['Bankrupt?']).corr()
 
@@ -86,55 +84,55 @@ plt.yticks(fontsize=9)
 plt.tight_layout()
 plt.savefig('eda_correlation_heatmap.png')
 plt.close()
-print("2. Grafik (eda_correlation_heatmap.png) kaydedildi!")
+print("Graph 2 (eda_correlation_heatmap.png) generated and saved.")
 
 
-print("\n--- 4. ADIM: TRAIN / TEST SPLIT (VERİYİ BÖLME) ---")
-# Hedef değişken (y) ve bağımsız değişkenleri (X) ayırıyoruz [cite: 51, 54]
+print("4.STEP")
+
 X = df_filtered.drop(columns=['Bankrupt?'])
 y = df_filtered['Bankrupt?']
 
-# %80 Eğitim, %20 Test olacak şekilde bölüyoruz [cite: 60]
+
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42, stratify=y)
-print(f"Eğitim Seti Boyutu: {X_train.shape[0]} şirket")
-print(f"Test Seti Boyutu: {X_test.shape[0]} şirket")
+print(f"Training Set Partition Shape: {X_train.shape[0]} firms")
+print(f"Validation Set Partition Shape: {X_test.shape[0]} firms")
 
 
-print("\n--- 5. ADIM: XGBOOST MODELİNİN EĞİTİLMESİ ---")
-# Sınıf dengesizliğini çözmek için ağırlık hesaplıyoruz (Sağlam / İflas)
-scale_weight = sağlam_sayısı / iflas_sayısı
+print("5.STEP")
 
-# XGBoost Sınıflandırıcısını tanımlıyoruz [cite: 61]
+scale_weight = healthy_count / bankrupt_count
+
+
 model = xgb.XGBClassifier(
     n_estimators=100,
     learning_rate=0.1,
     max_depth=5,
-    scale_pos_weight=scale_weight,  # Azınlık sınıfı olan iflasları koruma formülü
+    scale_pos_weight=scale_weight,  
     random_state=42,
     eval_metric='logloss'
 )
 
-# Modeli eğitiyoruz
+
 model.fit(X_train, y_train)
-print("XGBoost Modeli Başarıyla Eğitildi!")
+print("XGBoost Predictive Architecture Successfully Trained!")
 
 
-print("\n--- 6. ADIM: MODEL PERFORMANSI VE METRİKLER ---")
-# Test setini modele verip tahmin alıyoruz
+print("6.STEP")
+
 y_pred = model.predict(X_test)
 
-# Başarı skorlarını ekrana basıyoruz [cite: 63]
-accuracy = accuracy_score(y_test, y_pred)
-print(f"Modelin Genel Doğruluk Oranı (Accuracy): %{accuracy*100:.2f}")
 
-print("\nDetaylı Performans Raporu (Classification Report):")
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Overall Model Accuracy: {accuracy*100:.2f}%")
+
+print("\nDetailed Performance Diagnostics (Classification Report):")
 print(classification_report(y_test, y_pred))
 
 
-print("\n--- 7. ADIM: MODELİN GELECEKTE KULLANIM İÇİN KAYDEDİLMESİ ---")
-# Eğittiğimiz bu zeki modeli bilgisayara dosya olarak yazıyoruz
+print("7.STEP")
+
 with open("xgboost_model.pkl", "wb") as file:
     pickle.dump(model, file)
 
-print("Model 'xgboost_model.pkl' ismiyle başarıyla kaydedildi!")
-print("\nTüm süreç tamamlandı!")
+print("Trained model binary successfully serialized as 'xgboost_model.pkl'")
+print("\n--- End-to-End Pipeline Execution Completed Successfully ---")
